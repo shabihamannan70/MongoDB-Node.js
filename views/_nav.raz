@@ -1,0 +1,22 @@
+ <nav class="nav">
+      <span class="brand"><img src="/images/Copilot_20251128_015323.png"
+      class="logo">
+      <div class="brandName">The <sub><i> Veiled Boutique</i></sub>
+      </div>
+      </span>
+
+
+      <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/cart"><i class="bi bi-cart"></i> Cart</a></li>
+        @if(Model.authenticated){
+            <li><a href="/admin">Admin</a></li>
+            <li><a href="/logout">Logout</a></li>
+        }
+        else
+        {
+            <li><a href="/register">Register</a></li> 
+            <li><a href="/login">Login</a></li> 
+        }
+      </ul>
+</nav>

@@ -1,0 +1,180 @@
+@{
+    Model.title = "Home";
+    const categories = Model.categories;
+    const products = Model.products;
+}
+@section nav {
+    Html.partial("_nav", {authenticated:Model.authenticated})
+}
+<div class="container">
+    <div class="banner">
+        
+    </div>
+     <marquee class="mark">Upto 20% Discount for all products</marquee>
+</div>
+
+<div class="col-1-3">
+    <div>
+        <div class="sidenav">
+            <div class="sidenav-header">Categories</div>
+            <ul>
+                
+                @for(var i=0; i<categories.length;i++){
+                    <li><span class="link-icon"><a href="#">@categories[i].categoryname</a> <span class="r bi bi-chevron-right"></span><span class="d bi bi-chevron-down" style="display: none;"></span></span>
+                    <ul style="display: none">
+                    
+                       @for(var j=0; j<categories[i].subcategories.length;j++){
+                         <li><a href="/?c=@categories[i]._id&s=@categories[i].subcategories[j]._id">@categories[i].subcategories[j].subcategoryname</a></li>
+                        }
+                        
+                    </ul>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div>
+    
+    @if(Model.authenticated && Model.role=="admin"){
+        <div style="display:flex;justify-content:flex-end">
+        <a href="/admin">Admin Panel</a>
+        </div>
+    }
+       
+     <div class="product-box" id="product-box">
+        @for(var i=0; i<products.length;i++){
+            <div class="card" data-product-id="@products[i]._id">
+                <img style="width:250px" src="/images/@products[i].picture" />
+                <div class="card-body">
+                    <h3 class="card-title">
+                        @products[i].name
+
+                    </h3>
+                    <div class="card-text">
+                        <p>@products[i].description</p>
+                        <p style="text-align:right;font-weight:500;">Price TK. @products[i].price</p>
+                        <p style="text-align:right;margin-top:1rem;margin-bottom:1rem;">
+                            <button data-pid="@products[i]._id" class="cart-btn">Add to cart</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+     </div>   
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="/scripts/snackbar/js-snackbar.min.css" />
+    <script src="/scripts/jquery.js"></script>
+    <script src="/scripts/snackbar/js-snackbar.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        $(()=>{
+            //console.log(SnackBar)
+            $('.link-icon').click(function(){
+                let self = $(this);
+                let d = self.find('.d');
+                let r = self.find('.r');
+                d.toggle();
+                r.toggle();
+                self.next().toggle();
+            });
+            
+            // Cart button click handler (using event delegation for dynamically added products)
+            $(document).on('click', '.cart-btn', function(){
+                let id= $(this).data('pid');
+                $.ajax({
+                    method: 'get',
+                    url: '/addcart?id='+id,
+                    dataType:'json',
+                    success: r=>{
+                        console.log(r);
+
+                        SnackBar({
+                            message: r.msg,
+                            position: "bm"
+                        })
+                    }
+                })
+            });
+            
+            // Connect to Socket.io for live product updates
+            const socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Connected to server via Socket.io');
+            });
+            
+            socket.on('new-product', function(product) {
+                const productBox = document.getElementById('product-box');
+                
+                // Check if product already exists (avoid duplicates)
+                const existingCard = productBox.querySelector('.card[data-product-id="' + product._id + '"]');
+                if (existingCard) {
+                    return; // Product already exists, skip
+                }
+                
+                // Only show featured products on home page, or if no filter is applied
+                const urlParams = new URLSearchParams(window.location.search);
+                const subcategoryFilter = urlParams.get('s');
+                
+                // If there's a subcategory filter, check if product matches
+                if (subcategoryFilter && product.subcategoryid !== subcategoryFilter) {
+                    return; // Product doesn't match current filter
+                }
+                
+                // If no filter and product is not featured, don't show it
+                if (!subcategoryFilter && !product.featured) {
+                    return; // Only show featured products when no filter
+                }
+                
+                // Create new product card
+                const newCard = document.createElement('div');
+                newCard.className = 'card';
+                newCard.setAttribute('data-product-id', product._id);
+                newCard.innerHTML = '<img style="width:250px" src="/images/' + product.picture + '" />' +
+                    '<div class="card-body">' +
+                        '<h3 class="card-title">' + product.name + '</h3>' +
+                        '<div class="card-text">' +
+                            '<p>' + product.description + '</p>' +
+                            '<p style="text-align:right;font-weight:500;">Price TK. ' + product.price + '</p>' +
+                            '<p style="text-align:right;margin-top:1rem;margin-bottom:1rem;">' +
+                                '<button data-pid="' + product._id + '" class="cart-btn">Add to cart</button>' +
+                            '</p>' +
+                        '</div>' +
+                    '</div>';
+                
+                // Add animation and insert at the top
+                newCard.style.opacity = '0';
+                newCard.style.transform = 'scale(0.9)';
+                newCard.style.transition = 'opacity 0.5s, transform 0.5s';
+                productBox.insertBefore(newCard, productBox.firstChild);
+                
+                // Fade in and scale animation
+                setTimeout(() => {
+                    newCard.style.opacity = '1';
+                    newCard.style.transform = 'scale(1)';
+                }, 10);
+                
+                // Show notification
+                if (typeof SnackBar !== 'undefined') {
+                    SnackBar({
+                        message: `New product added: ${product.name}`,
+                        position: "bm"
+                    });
+                }
+            });
+            
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+            });
+            
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => {
+                socket.disconnect();
+            });
+        });
+    </script>
+
+}

@@ -1,0 +1,108 @@
+@{
+     Model.title="Product management";
+     var products = Model.products
+}
+@section nav {
+    Html.partial("_nav", {authenticated:true})
+}
+<h1 style="width:97.5%; margin: 5px auto;text-align:center">Products</h1>
+<div class="right">
+    <a href="/create-product"><i class="bi bi-plus"></i></a>
+</div>
+<table class="tbl">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+        <tbody id="products-table-body">
+        @for(var i=0;i<products.length;i++){
+            <tr data-product-id="@products[i]._id">
+                <td style="width:50px;tex-align:center">
+                    <img class="circle-image" src="/images/@products[i].picture" style="width:50px" />
+                </td>
+                <td>@products[i].name</td>
+                 <td>@products[i].price</td>
+                 <td>@products[i].description</td>
+            </tr>
+        }
+        </tbody>
+    
+</table>
+
+@section Scripts {
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // Connect to Socket.io for live updates
+        const socket = io();
+        
+        socket.on('connect', () => {
+            console.log('✅ Connected to server via Socket.io');
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('❌ Socket.io connection error:', error);
+        });
+        
+        socket.on('new-product', function(product) {
+            const tbody = document.getElementById('products-table-body');
+            
+            if (!tbody) {
+                console.error('❌ products-table-body not found!');
+                return;
+            }
+            
+            // Check if product already exists (avoid duplicates)
+            const existingRow = tbody.querySelector('tr[data-product-id="' + product._id + '"]');
+            if (existingRow) {
+                return; // Product already exists, skip
+            }
+            
+            // Create new table row
+            const newRow = document.createElement('tr');
+            newRow.setAttribute('data-product-id', product._id);
+            newRow.innerHTML = '<td style="width:50px;tex-align:center">' +
+                '<img class="circle-image" src="/images/' + product.picture + '" style="width:50px" />' +
+                '</td>' +
+                '<td>' + product.name + '</td>' +
+                '<td>' + product.price + '</td>' +
+                '<td>' + product.description + '</td>';
+            
+            // Insert the row first
+            tbody.insertBefore(newRow, tbody.firstChild);
+            
+            // Add fade-in animation
+            newRow.style.opacity = '0';
+            newRow.style.transition = 'opacity 0.5s';
+            newRow.style.backgroundColor = '#ffffcc'; // Temporary highlight
+            
+            // Force a reflow to ensure the element is rendered
+            void newRow.offsetHeight;
+            
+            // Fade in animation
+            setTimeout(() => {
+                newRow.style.opacity = '1';
+                
+                // Scroll to the new row
+                newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                // Remove highlight after 2 seconds
+                setTimeout(() => {
+                    newRow.style.backgroundColor = '';
+                }, 2000);
+            }, 50);
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('⚠️ Disconnected from server');
+        });
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            socket.disconnect();
+        });
+    </script>
+}
