@@ -1,0 +1,24 @@
+@section nav {
+    Html.partial("_nav", {authenticated:true})
+}
+<div>
+    
+    <h1 style="text-align:center;">Admin Panel</h1>
+    
+    <div class="box-container">
+        <a class="big-box" href="/categories">
+        
+        
+        <i class="bi bi-grid-fill" style="font-size: 60px; color: #3d0610;"></i>
+        <span style="font-size:1.1rem;font-weight:500">Categories</span>
+        </a>
+        <a class="big-box" href="/products">
+             <i class="bi bi-box-seam" style="font-size: 60px; color: #3d0610;"></i>
+            <span style="font-size:1.1rem;font-weight:500">Products</span>
+        </a>
+        <a class="big-box" href="/admin-order">
+          <i class="bi bi-cart-fill" style="font-size: 60px; color: #3d0610;"></i>
+          <span style="font-size:1.1rem;font-weight:500">Orders</span>
+        </a>
+    </div>
+</div>

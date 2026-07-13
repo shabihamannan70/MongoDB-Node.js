@@ -1,0 +1,5 @@
+1. cmd
+2. code .
+3. npm install
+4. node app.js
+5. In Mongo Refresh Database
